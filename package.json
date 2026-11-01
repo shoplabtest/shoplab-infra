@@ -6,6 +6,21 @@
     "check:env": "node scripts/check-env-names.mjs",
     "up": "docker compose up -d --build",
     "down": "docker compose down -v",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "frontends": "node scripts/frontends.mjs",
+    "e2e": "node scripts/e2e.mjs"
+  },
+  "version": "1.0.0",
+  "description": "ShopLab local stack, deployment config and CI",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shoplabtest/shoplab-infra.git"
+  },
+  "bugs": {
+    "url": "https://github.com/shoplabtest/shoplab-infra/issues"
+  },
+  "homepage": "https://github.com/shoplabtest/shoplab-infra#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.49.1"
   }
 }

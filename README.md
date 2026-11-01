@@ -12,5 +12,9 @@ Local stack, deployment config and shared CI for ShopLab.
 npm run up        # build and start the stack
 npm run smoke     # seed, then register/login/add to cart/merge/checkout end to end
 npm run check:env # Helm env names vs service code
+npm run frontends # build and serve host + remotes on ports 5000-5003 (needs sibling checkouts)
+npm run e2e       # Playwright journey in a real browser: browse, add to cart, register, merge, edit profile, coupon
 npm run down
 ```
+
+The e2e test needs `npm run up`, a seeded stack (`npm run smoke` seeds it) and `npm run frontends` running. Run `npx playwright install chromium` once.

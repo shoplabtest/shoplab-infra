@@ -1,0 +1,76 @@
+# Local stack. Build contexts are sibling checkouts: shoplab/shoplab-iam, shoplab-catalog-api, shoplab-cart-api.
+name: shoplab
+
+x-pg: &pg
+  image: postgres:16-alpine
+  environment:
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shoplab}
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U postgres"]
+    interval: 3s
+    timeout: 3s
+    retries: 20
+
+services:
+  postgres-iam:
+    <<: *pg
+    environment: { POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-shoplab}", POSTGRES_DB: iam }
+  postgres-catalog:
+    <<: *pg
+    environment: { POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-shoplab}", POSTGRES_DB: catalog }
+  postgres-cart:
+    <<: *pg
+    environment: { POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-shoplab}", POSTGRES_DB: cart }
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    ports: ["15672:15672"]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+
+  iam:
+    restart: on-failure
+    build: ../shoplab-iam
+    ports: ["3001:3001"]
+    environment:
+      PORT: "3001"
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-shoplab}@postgres-iam:5432/iam
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret}
+      RABBITMQ_URL: amqp://rabbitmq:5672
+    depends_on:
+      postgres-iam: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  catalog-api:
+    restart: on-failure
+    build: ../shoplab-catalog-api
+    ports: ["3002:3002"]
+    environment:
+      PORT: "3002"
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-shoplab}@postgres-catalog:5432/catalog
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret}
+      RABBITMQ_URL: amqp://rabbitmq:5672
+    depends_on:
+      postgres-catalog: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  cart-api:
+    restart: on-failure
+    build: ../shoplab-cart-api
+    ports: ["3003:3003"]
+    environment:
+      PORT: "3003"
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-shoplab}@postgres-cart:5432/cart
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret}
+      RABBITMQ_URL: amqp://rabbitmq:5672
+      CATALOG_API_URL: http://catalog-api:3002
+    depends_on:
+      postgres-cart: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      catalog-api: { condition: service_started }

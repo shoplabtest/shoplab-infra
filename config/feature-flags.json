@@ -1,0 +1,4 @@
+{
+  "checkout.v2": { "default": false, "description": "New checkout flow" },
+  "catalog.newSearch": { "default": false, "description": "Search with sort and filters" }
+}

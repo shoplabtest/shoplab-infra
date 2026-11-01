@@ -1,0 +1,5 @@
+{
+  "catalog_api_url": "http://catalog-api:3002",
+  "cdn_base_url": "https://cdn.dev.shoplab.test",
+  "rabbit_url": "amqp://rabbitmq:5672"
+}

@@ -1,0 +1,34 @@
+# Reusable CI for ShopLab Node services. Call it from a service repo:
+#   jobs:
+#     ci:
+#       uses: shoplabtest/shoplab-infra/.github/workflows/service-ci.yml@main
+#       with: { database: true }
+name: service-ci
+on:
+  workflow_call:
+    inputs:
+      node-version: { type: string, default: '22' }
+      database: { type: boolean, default: false, description: 'Run tests against an empty Postgres (migration test)' }
+      image: { type: boolean, default: true, description: 'Build the Docker image' }
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: { POSTGRES_PASSWORD: pw, POSTGRES_DB: test }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: ${{ inputs.database && 'postgres://postgres:pw@localhost:5432/test' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ inputs.node-version }}', cache: npm }
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - if: ${{ inputs.image }}
+        run: docker build -t service:ci .

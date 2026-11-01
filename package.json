@@ -1,0 +1,11 @@
+{
+  "name": "shoplab-infra",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check:env": "node scripts/check-env-names.mjs",
+    "up": "docker compose up -d --build",
+    "down": "docker compose down -v",
+    "smoke": "node scripts/smoke.mjs"
+  }
+}

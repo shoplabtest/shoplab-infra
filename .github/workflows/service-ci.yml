@@ -10,6 +10,7 @@ on:
       node-version: { type: string, default: '22' }
       database: { type: boolean, default: false, description: 'Run tests against an empty Postgres (migration test)' }
       image: { type: boolean, default: true, description: 'Build the Docker image' }
+      build: { type: boolean, default: false, description: 'Run npm run build (frontends: builds the federation manifest)' }
 
 jobs:
   test:
@@ -27,8 +28,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: '${{ inputs.node-version }}', cache: npm }
+      # Lockfiles record git dependencies (e.g. @shoplab/ui-kit) as ssh URLs; runners have no ssh key.
+      - run: git config --global url."https://github.com/".insteadOf ssh://git@github.com/
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      - if: ${{ inputs.build }}
+        run: npm run build
       - if: ${{ inputs.image }}
         run: docker build -t service:ci .

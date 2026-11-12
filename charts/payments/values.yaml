@@ -1,0 +1,13 @@
+image:
+  repository: ghcr.io/shoplabtest/shoplab-payments
+  tag: latest
+replicas: 1
+port: 3005
+# Env var names must match what the service code reads (checked by scripts/check-env-names.mjs).
+env:
+  DATABASE_URL:             ""   # set at deploy time (--set or an external values file)
+  JWT_SECRET:               ""   # set at deploy time (--set or an external values file)
+  RABBITMQ_URL:             ""
+  ORDERS_CALLBACK_URL:      ""   # the orders service base URL
+  PAYMENT_WEBHOOK_SECRET:   ""   # shared with the payment provider; set at deploy time
+  MAX_CHARGE_ATTEMPTS:      "3"

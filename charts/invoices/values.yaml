@@ -1,0 +1,11 @@
+image:
+  repository: ghcr.io/shoplabtest/shoplab-invoices
+  tag: latest
+replicas: 1
+port: 3006
+# Env var names must match what the service code reads (checked by scripts/check-env-names.mjs).
+env:
+  DATABASE_URL:            ""   # set at deploy time (--set or an external values file)
+  IAM_DATABASE_URL:        ""   # read-only role on iam's database, see deploy/invoices-reader.sql
+  RABBITMQ_URL:            ""
+  INVOICES_INTERNAL_KEY:   ""   # shared with the gateway; set at deploy time

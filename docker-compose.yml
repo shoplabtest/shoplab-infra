@@ -1,4 +1,4 @@
-# Local stack. Build contexts are sibling checkouts: shoplab/shoplab-iam, shoplab-catalog-api, shoplab-cart-api.
+# Local stack. Build contexts are sibling checkouts: shoplab/shoplab-iam, shoplab-catalog-api, shoplab-cart-api and the Phase 2 services.
 name: shoplab
 
 x-pg: &pg
@@ -74,3 +74,119 @@ services:
       postgres-cart: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }
       catalog-api: { condition: service_started }
+
+  # --- Phase 2 -----------------------------------------------------------------------------------------------
+  postgres-orders:
+    <<: *pg
+    environment: { POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-shoplab}", POSTGRES_DB: orders }
+  postgres-payments:
+    <<: *pg
+    environment: { POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-shoplab}", POSTGRES_DB: payments }
+  postgres-invoices:
+    <<: *pg
+    environment: { POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-shoplab}", POSTGRES_DB: invoices }
+  postgres-notifications:
+    <<: *pg
+    environment: { POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-shoplab}", POSTGRES_DB: notifications }
+
+  orders:
+    restart: on-failure
+    build: ../shoplab-orders
+    ports: ["3004:3004"]
+    environment:
+      PORT: "3004"
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-shoplab}@postgres-orders:5432/orders
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret}
+      RABBITMQ_URL: amqp://rabbitmq:5672
+      CATALOG_API_URL: http://catalog-api:3002
+    depends_on:
+      postgres-orders: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      catalog-api: { condition: service_started }
+
+  payments:
+    restart: on-failure
+    build: ../shoplab-payments
+    ports: ["3005:3005"]
+    environment:
+      PORT: "3005"
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:-shoplab}@postgres-payments:5432/payments
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret}
+      RABBITMQ_URL: amqp://rabbitmq:5672
+      ORDERS_CALLBACK_URL: http://orders:3004
+      PAYMENT_WEBHOOK_SECRET: ${PAYMENT_WEBHOOK_SECRET:-dev-only-webhook-secret}
+    depends_on:
+      postgres-payments: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      orders: { condition: service_started }
+
+  # One-shot: gives the invoices service a role that can read three columns of iam's users table (see deploy/invoices-reader.sql).
+  # It waits for iam to have created the table, so it works on a fresh stack.
+  iam-reader-grants:
+    image: postgres:16-alpine
+    restart: on-failure
+    volumes: ["./deploy/invoices-reader.sql:/grants.sql:ro"]
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:-shoplab}
+      READER_PASSWORD: ${INVOICES_READER_PASSWORD:-invoices_reader}
+    entrypoint:
+      - sh
+      - -c
+      - >-
+        until psql -h postgres-iam -U postgres -d iam -Atc "SELECT to_regclass('public.users')" | grep -q users; do sleep 2; done;
+        psql -h postgres-iam -U postgres -d iam -v ON_ERROR_STOP=1 -v reader_password="$$READER_PASSWORD" -f /grants.sql
+    depends_on:
+      postgres-iam: { condition: service_healthy }
+      iam: { condition: service_started }
+
+  invoices:
+    restart: on-failure
+    build: ../shoplab-invoices
+    ports: ["3006:3006"]
+    environment:
+      PORT: "3006"
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-shoplab}@postgres-invoices:5432/invoices
+      IAM_DATABASE_URL: postgres://invoices_reader:${INVOICES_READER_PASSWORD:-invoices_reader}@postgres-iam:5432/iam
+      RABBITMQ_URL: amqp://rabbitmq:5672
+      INVOICES_INTERNAL_KEY: ${INVOICES_INTERNAL_KEY:-dev-internal-key}
+    depends_on:
+      postgres-invoices: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      iam-reader-grants: { condition: service_completed_successfully }
+
+  notifications:
+    restart: on-failure
+    build: ../shoplab-notifications
+    ports: ["3007:3007"]
+    environment:
+      PORT: "3007"
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-shoplab}@postgres-notifications:5432/notifications
+      RABBITMQ_URL: amqp://rabbitmq:5672
+      OPS_ALERT_EMAIL: ops@shoplab.test
+    depends_on:
+      postgres-notifications: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  # The one public entry point. Browsers talk to this; the services above are reachable directly only for local debugging.
+  gateway:
+    restart: on-failure
+    build: ../shoplab-gateway
+    ports: ["${GATEWAY_PORT:-8080}:8080"]
+    environment:
+      PORT: "8080"
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret}
+      IAM_URL: http://iam:3001
+      CATALOG_API_URL: http://catalog-api:3002
+      CART_API_URL: http://cart-api:3003
+      ORDERS_URL: http://orders:3004
+      PAYMENTS_URL: http://payments:3005
+      INVOICES_URL: http://invoices:3006
+      INVOICES_INTERNAL_KEY: ${INVOICES_INTERNAL_KEY:-dev-internal-key}
+      CORS_ORIGINS: http://localhost:5000
+    depends_on:
+      iam: { condition: service_started }
+      catalog-api: { condition: service_started }
+      cart-api: { condition: service_started }
+      orders: { condition: service_started }
+      payments: { condition: service_started }
+      invoices: { condition: service_started }

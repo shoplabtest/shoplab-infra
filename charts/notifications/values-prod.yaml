@@ -1,0 +1,3 @@
+replicas: 3
+env:
+  RABBITMQ_URL: amqps://rabbit.shoplab.internal:5671

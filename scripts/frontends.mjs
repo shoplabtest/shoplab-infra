@@ -1,6 +1,6 @@
-// Builds the host and the three remotes and serves them from their sibling checkouts:
-// host 5000, catalog 5001, cart 5002, account 5003. Keeps running until stopped (Ctrl+C).
-// The host's preview server proxies /auth, /products, /cart ... to the services, standing in for the gateway.
+// Builds the host and the four remotes and serves them from their sibling checkouts:
+// host 5000, catalog 5001, cart 5002, account 5003, checkout 5004. Keeps running until stopped (Ctrl+C).
+// The host's dev proxy stands in for the gateway; point it at the gateway (port 8080) once the stack is up.
 import { spawn, spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
@@ -10,6 +10,7 @@ const apps = [
   { dir: 'shoplab-catalog-mfe', port: 5001 },
   { dir: 'shoplab-cart-mfe', port: 5002 },
   { dir: 'shoplab-account-mfe', port: 5003 },
+  { dir: 'shoplab-checkout-mfe', port: 5004 },
 ];
 
 for (const a of apps) {

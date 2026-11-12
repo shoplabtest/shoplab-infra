@@ -1,0 +1,19 @@
+name: ci
+on:
+  push: { branches: [main] }
+  pull_request:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compose file is valid
+        run: docker compose config -q
+      - name: Helm charts lint and render
+        run: |
+          for c in charts/*/; do
+            helm lint "$c"
+            for v in dev prod; do helm template "$c" -f "$c/values-$v.yaml" > /dev/null; done
+          done
+      - name: Smoke script parses
+        run: node --check scripts/smoke.mjs && node --check scripts/e2e.mjs && node --check scripts/frontends.mjs

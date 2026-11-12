@@ -1,0 +1,22 @@
+image:
+  repository: ghcr.io/shoplabtest/shoplab-gateway
+  tag: latest
+replicas: 1
+port: 8080
+# Env var names must match what the service code reads (checked by scripts/check-env-names.mjs).
+env:
+  JWT_SECRET:              ""   # set at deploy time (--set or an external values file)
+  IAM_URL:                 ""
+  CATALOG_API_URL:         ""
+  CART_API_URL:            ""
+  ORDERS_URL:              ""
+  PAYMENTS_URL:            ""
+  INVOICES_URL:            ""
+  INVOICES_INTERNAL_KEY:   ""   # shared with the invoices service; set at deploy time
+  CORS_ORIGINS:            ""   # comma-separated browser origins
+  TRUST_PROXY:             "false"   # true when a load balancer sits in front
+  UPSTREAM_TIMEOUT_MS:     "10000"
+  MAX_BODY_BYTES:          "1000000"
+  RATE_LIMIT_AUTH:         "10"   # per minute, per IP, on /auth
+  RATE_LIMIT_DEFAULT:      "120"   # per minute, per user or IP; each replica counts separately
+  RATE_LIMIT_WEBHOOK:      "600"   # per minute, per IP

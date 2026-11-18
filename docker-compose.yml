@@ -172,6 +172,7 @@ services:
     restart: on-failure
     build: ../shoplab-gateway
     ports: ["${GATEWAY_PORT:-8080}:8080"]
+    volumes: ["./config/feature-flags.json:/etc/shoplab/feature-flags.json:ro"]
     environment:
       PORT: "8080"
       JWT_SECRET: ${JWT_SECRET:-dev-only-secret}
@@ -183,6 +184,7 @@ services:
       INVOICES_URL: http://invoices:3006
       INVOICES_INTERNAL_KEY: ${INVOICES_INTERNAL_KEY:-dev-internal-key}
       CORS_ORIGINS: http://localhost:5000
+      FEATURE_FLAGS_FILE: /etc/shoplab/feature-flags.json
     depends_on:
       iam: { condition: service_started }
       catalog-api: { condition: service_started }

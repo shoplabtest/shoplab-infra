@@ -14,6 +14,7 @@ env:
   INVOICES_URL:            ""
   INVOICES_INTERNAL_KEY:   ""   # shared with the invoices service; set at deploy time
   CORS_ORIGINS:            ""   # comma-separated browser origins
+  FEATURE_FLAGS_FILE:      ""   # path of config/feature-flags.json mounted into the pod; empty serves no flags
   TRUST_PROXY:             "false"   # true when a load balancer sits in front
   UPSTREAM_TIMEOUT_MS:     "10000"
   MAX_BODY_BYTES:          "1000000"

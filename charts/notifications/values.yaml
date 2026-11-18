@@ -1,0 +1,12 @@
+image:
+  repository: ghcr.io/shoplabtest/shoplab-notifications
+  tag: latest
+replicas: 1
+port: 3007
+# Env var names must match what the service code reads (checked by scripts/check-env-names.mjs).
+env:
+  DATABASE_URL:             ""   # set at deploy time (--set or an external values file)
+  RABBITMQ_URL:             ""
+  OPS_ALERT_EMAIL:          "ops@shoplab.test"
+  PRICE_PROTECTION_DAYS:    "14"
+  PRICE_DROP_MIN_PERCENT:   "5"

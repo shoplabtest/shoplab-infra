@@ -1,4 +1,4 @@
 {
-  "checkout.v2": { "default": false, "description": "New checkout flow" },
+  "checkout.express": { "default": false, "description": "Express payment: the wallet is pre-selected at checkout" },
   "catalog.newSearch": { "default": false, "description": "Search with sort and filters" }
 }

@@ -1,17 +1,19 @@
 // Fails when a Helm values env var is never read by the service, or a service reads an env var the chart does not set.
 // Looks for sibling checkouts (../shoplab-<name>); services that are not checked out are skipped.
+// Node services are read from src/*.ts; Python services (payments) from app/*.py.
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
-const READ = /(?:process\.env|\benv)\.([A-Z][A-Z0-9_]+)/g;
+const READ_TS = /(?:process\.env|\benv)\.([A-Z][A-Z0-9_]+)/g;
+const READ_PY = /\benv\.get\(\s*["']([A-Z][A-Z0-9_]+)["']/g;
 // Set by the platform or only used in tests, never by Helm.
 const IGNORE = new Set(['NODE_ENV', 'TEST_DATABASE_URL']);
 
-function files(dir) {
+function files(dir, ext) {
   return readdirSync(dir).flatMap((f) => {
     const p = join(dir, f);
-    return statSync(p).isDirectory() ? files(p) : p.endsWith('.ts') ? [p] : [];
+    return statSync(p).isDirectory() ? files(p, ext) : p.endsWith(ext) ? [p] : [];
   });
 }
 
@@ -29,14 +31,16 @@ function chartEnvNames(values) {
 
 let problems = 0;
 for (const chart of readdirSync(join(root, 'charts'))) {
-  const src = resolve(root, '..', `shoplab-${chart}`, 'src');
+  const sibling = resolve(root, '..', `shoplab-${chart}`);
+  const python = !existsSync(join(sibling, 'src')) && existsSync(join(sibling, 'app'));
+  const src = join(sibling, python ? 'app' : 'src');
   if (!existsSync(src)) {
     console.log(`skip  ${chart} (no sibling checkout)`);
     continue;
   }
   const declared = new Set(chartEnvNames(readFileSync(join(root, 'charts', chart, 'values.yaml'), 'utf8')));
   const read = new Set();
-  for (const f of files(src)) for (const m of readFileSync(f, 'utf8').matchAll(READ)) if (!IGNORE.has(m[1])) read.add(m[1]);
+  for (const f of files(src, python ? '.py' : '.ts')) for (const m of readFileSync(f, 'utf8').matchAll(python ? READ_PY : READ_TS)) if (!IGNORE.has(m[1])) read.add(m[1]);
   for (const n of declared) if (!read.has(n)) (problems++, console.error(`FAIL  ${chart}: chart sets ${n} but the service never reads it`));
   for (const n of read) if (!declared.has(n) && n !== 'PORT') (problems++, console.error(`FAIL  ${chart}: service reads ${n} but the chart does not set it`));
   console.log(`ok    ${chart} (${declared.size} vars)`);

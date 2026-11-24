@@ -6,7 +6,7 @@ Local stack, deployment config and shared CI for ShopLab.
 - `charts/<service>/`: Helm chart with `values.yaml`, `values-dev.yaml`, `values-prod.yaml`, one per service including the gateway. Env var names must match what the service reads (Node services in `src/`, payments in `app/`).
 - `.github/workflows/service-ci.yml`: reusable workflow (typecheck, tests, optional Postgres migration test, image build).
 - `config/feature-flags.json`: `checkout.v2`, `catalog.newSearch`. The gateway mounts it and serves it at `GET /flags` (`FLAG_<KEY>=true|false` overrides one); the host and the checkout remote read `checkout.v2`.
-- `deploy/outputs.dev.json`: `catalog_api_url`, `cdn_base_url`, `rabbit_url`.
+- `deploy/outputs.dev.json`: `catalog_api_url`, `cdn_base_url`, `rabbit_url`, `gateway_url`.
 - `deploy/invoices-reader.sql`: creates the read-only role the invoices service uses on iam's database (three columns of `users`). Compose runs it through the one-shot `iam-reader-grants` service; in a real environment a DBA applies it.
 
 ```

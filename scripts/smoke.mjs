@@ -98,7 +98,7 @@ const ready = await call(GATEWAY, '/readyz');
 expect(ready.status === 200 && Object.values(ready.body.upstreams).every((s) => s === 'up'), 'gateway reports every upstream up');
 expect((await call(GATEWAY, '/orders')).status === 401, 'gateway refuses /orders without a token');
 const flags = await call(GATEWAY, '/flags');
-expect(flags.status === 200 && flags.body['checkout.v2'] === false && flags.body['catalog.newSearch'] === false, 'gateway serves the feature flags from config/feature-flags.json, all off by default');
+expect(flags.status === 200 && flags.body['checkout.express'] === false && flags.body['catalog.newSearch'] === false, 'gateway serves the feature flags from config/feature-flags.json, all off by default');
 expect((await call(GATEWAY, '/invoices', { token: user.body.accessToken })).status === 403, 'gateway keeps customers out of /invoices');
 
 const orderFor = (token, cartId) => eventually('order for the checked-out cart', async () => (await call(GATEWAY, '/orders', { token })).body.find((o) => o.cartId === cartId));
